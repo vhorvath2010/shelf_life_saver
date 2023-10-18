@@ -1,11 +1,11 @@
 // Delay in ms before turning light on
-const unsigned long LED_DELAY = 10000;
+const unsigned long LED_DELAY = 1200000;
 
 // Place indicator length in ms
 const unsigned long PLACED_IND_DUR = 1000;
 
 // Sensitivity of pressure sensor (1000 is max)
-const unsigned int PRESSURE_SENSITIVITY = 1000;
+const unsigned int PRESSURE_SENSITIVITY = 255;
 
 const unsigned int LED_OUT = 11;
 const unsigned int PRESSURE_SENSOR_IN = A0;
@@ -23,15 +23,29 @@ void setup() {
 }
 
 void loop() {
-  // check if pressure is in
-  int pressure_v = analogRead(PRESSURE_SENSOR_IN);
+  // update placements
+  update_last_placed();
 
-  // Pressure sensor logic
-  bool next_pressed = pressure_v > PRESSURE_SENSITIVITY;
-  if (next_pressed) {
+  // Light up if placed recently or too long ago
+  unsigned int curr = millis();
+  unsigned int diff = curr - last_placed;
+  if (pressed && (diff < PLACED_IND_DUR || diff > LED_DELAY)) {
     digitalWrite(LED_OUT, HIGH);
   } else {
     digitalWrite(LED_OUT, LOW);
   }
-  pressed = next_pressed;
+}
+
+void update_last_placed() {
+  int pressure_v = analogRead(PRESSURE_SENSOR_IN);
+
+  // If pressed check for new place and track pressed
+  if (pressure_v > PRESSURE_SENSITIVITY) {
+    if (!pressed) {
+      last_placed = millis();
+    }
+    pressed = true;
+  } else {
+    pressed = false;
+  }
 }
