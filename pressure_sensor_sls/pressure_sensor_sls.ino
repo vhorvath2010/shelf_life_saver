@@ -23,7 +23,7 @@ bool pressed = false;
 unsigned long last_placed = 0; // time object was last placed (from millis())
 
 // Track the sensor readings for the past SENSOR_INTERVALS to smooth noise
-const unsigned int SENSOR_INTERVALS = 16000;  // Based off 16MHz, so track last 0.001 seconds of data
+const unsigned int SENSOR_INTERVALS = 100;  // Based off 16MHz, so track last SENSOR_INTERVALS/16MHz seconds of data
 boolean *sensor_readings;    // Circular array to track sensor readings
 unsigned int curr_reading_pos = 0;            // Current position in the sensor readings circular array
 unsigned int curr_reading_sum = 0;            // Current sum of the readings for the past SENSOR_INTERVALS timesteps
