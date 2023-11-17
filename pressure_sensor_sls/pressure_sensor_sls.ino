@@ -31,11 +31,14 @@ const unsigned int PRESSED_THRESHOLD = SENSOR_INTERVALS * 0.50; // Require X% of
                                                                 // (raise if seemingly detecting nothing)
 
 void setup() {
+  Serial.begin(9600);
+
   // initialize sensor readings to 0
   sensor_readings = calloc(SENSOR_INTERVALS, sizeof(boolean));
 
   // Stop execution if no dynamic memory space for our sensor readings
   if (sensor_readings == NULL) {
+    Serial.println("Unable to allocate space for sensor readings");
     exit(1);
   }
 
@@ -47,8 +50,6 @@ void setup() {
   strip.show();
 
   last_placed = millis();
-
-  // Serial.begin(9600);
 }
 
 void loop() {
@@ -75,6 +76,10 @@ void update_last_placed() {
   
   // If pressed check for new place and track pressed
   // pressed means we've read more pressed signals than our threshold
+  Serial.print("Curr reading sum: ");
+  Serial.println(curr_reading_sum);
+  Serial.print("Threshold: ");
+  Serial.println(PRESSED_THRESHOLD);
   if (curr_reading_sum >= PRESSED_THRESHOLD) {
     if (!pressed) {
       last_placed = millis();
@@ -95,6 +100,7 @@ void update_pressed_count() {
     sensor_readings[curr_reading_pos] = switch_input == HIGH;
     // Add newly "pressed" reading if needed
     if (switch_input == HIGH) {
+      Serial.println("Pressure sensor down");
       curr_reading_sum++;
     }
 
