@@ -20,9 +20,20 @@ const unsigned int SWITCH_IN = 7;
 
 // Keep track of when an object was last placed (not pressed -> pressed)
 bool pressed = false;
-unsigned long last_placed = 0;
+unsigned long last_placed = 0; // time object was last placed (from millis())
+
+// Track the sensor readings for the past SENSOR_INTERVALS to smooth noise
+const unsigned int SENSOR_INTERVALS = 16000;  // Based off 16MHz, so track last 0.001 seconds of data
+boolean *sensor_readings;    // Circular array to track sensor readings
+unsigned int curr_reading_pos = 0;            // Current position in the sensor readings circular array
+unsigned int curr_reading_sum = 0;            // Current sum of the readings for the past SENSOR_INTERVALS timesteps
+const unsigned int PRESSED_THRESHOLD = SENSOR_INTERVALS * 0.50; // Require X% of current readings to be true to count as pressed (lower if flickering too much)
+                                                                // (raise if seemingly detecting nothing)
 
 void setup() {
+  // initialize sensor readings to 0
+  sensor_readings = calloc(SENSOR_INTERVALS, sizeof(boolean));
+
   // setup pins
   pinMode(SWITCH_IN, INPUT);
 
@@ -32,7 +43,7 @@ void setup() {
 
   last_placed = millis();
 
-  Serial.begin(9600);
+  // Serial.begin(9600);
 }
 
 void loop() {
@@ -55,11 +66,11 @@ void loop() {
 }
 
 void update_last_placed() {
-  int switch_input = digitalRead(SWITCH_IN);
-  Serial.println(switch_input);
-
+  update_pressed_count();
+  
   // If pressed check for new place and track pressed
-  if (switch_input == HIGH) {
+  // pressed means we've read more pressed signals than our threshold
+  if (curr_reading_sum >= PRESSED_THRESHOLD) {
     if (!pressed) {
       last_placed = millis();
     }
@@ -67,4 +78,21 @@ void update_last_placed() {
   } else {
     pressed = false;
   }
+}
+
+void update_pressed_count() {
+    int switch_input = digitalRead(SWITCH_IN);
+    
+    // Update current position with reading, and update sum accordingly
+    if (sensor_readings[curr_reading_pos]) {
+      curr_reading_sum--; // remove the previously counted "pressed" reading
+    }
+    sensor_readings[curr_reading_pos] = switch_input == HIGH;
+    // Add newly "pressed" reading if needed
+    if (switch_input == HIGH) {
+      curr_reading_sum++;
+    }
+
+    // move to next spot in circular array
+    curr_reading_pos = (curr_reading_pos + 1) % SENSOR_INTERVALS;
 }
