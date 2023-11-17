@@ -34,6 +34,11 @@ void setup() {
   // initialize sensor readings to 0
   sensor_readings = calloc(SENSOR_INTERVALS, sizeof(boolean));
 
+  // Stop execution if no dynamic memory space for our sensor readings
+  if (sensor_readings == NULL) {
+    exit(1);
+  }
+
   // setup pins
   pinMode(SWITCH_IN, INPUT);
 
