@@ -1,7 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 
 // Delay in ms before turning light on
-const unsigned long LED_DELAY = 5000;
+const unsigned long LED_DELAY = 10000;
 
 // Place indicator length in ms
 const unsigned long PLACED_IND_DUR = 1000;
@@ -20,28 +20,13 @@ const unsigned int SWITCH_IN = 7;
 
 // Keep track of when an object was last placed (not pressed -> pressed)
 bool pressed = false;
-unsigned long last_placed = 0; // time object was last placed (from millis())
+unsigned long last_placed = 0;
 
-// Track the sensor readings for the past SENSOR_INTERVALS to smooth noise
-const unsigned int SENSOR_INTERVALS = 100;  // Based off 16MHz, so track last SENSOR_INTERVALS/16MHz seconds of data
-boolean *sensor_readings;    // Circular array to track sensor readings
-unsigned int curr_reading_pos = 0;            // Current position in the sensor readings circular array
-unsigned int curr_reading_sum = 0;            // Current sum of the readings for the past SENSOR_INTERVALS timesteps
-const unsigned int PRESSED_THRESHOLD = SENSOR_INTERVALS * 0.50; // Require X% of current readings to be true to count as pressed (lower if flickering too much)
-                                                                // (raise if seemingly detecting nothing)
+// require MS before acting as unpressed
+const unsigned int LOW_REQUIRED_MS = 5000;
+unsigned long last_high = 0;
 
 void setup() {
-  Serial.begin(9600);
-
-  // initialize sensor readings to 0
-  sensor_readings = calloc(SENSOR_INTERVALS, sizeof(boolean));
-
-  // Stop execution if no dynamic memory space for our sensor readings
-  if (sensor_readings == NULL) {
-    Serial.println("Unable to allocate space for sensor readings");
-    exit(1);
-  }
-
   // setup pins
   pinMode(SWITCH_IN, INPUT);
 
@@ -50,6 +35,8 @@ void setup() {
   strip.show();
 
   last_placed = millis();
+
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -59,11 +46,16 @@ void loop() {
   // Light up if placed recently or too long ago
   unsigned int curr = millis();
   unsigned int time_since_placed = curr - last_placed;
-  if (pressed && (time_since_placed < PLACED_IND_DUR || time_since_placed > LED_DELAY)) {
+  if (pressed) { //  && (time_since_placed < PLACED_IND_DUR || time_since_placed > LED_DELAY)
     if (time_since_placed < PLACED_IND_DUR) {
       strip.fill(PLACED_COLOR);
+      Serial.println("PLACED COLOR");
     } else if (time_since_placed > LED_DELAY) {
       strip.fill(TIMER_UP_COLOR);
+      Serial.println("TIMER UP COLOR");
+    } else {
+      strip.fill(strip.Color(255, 120, 0));
+      Serial.println("MID COLOR");
     }
   } else {
     strip.clear();
@@ -72,38 +64,23 @@ void loop() {
 }
 
 void update_last_placed() {
-  update_pressed_count();
-  
+  int switch_input = digitalRead(SWITCH_IN);
+  Serial.println(switch_input);
+  unsigned long now = millis();
+  if (switch_input == HIGH) {
+    Serial.println("BEING PRESSED");
+    last_high = now;
+  } else {
+    Serial.println("NOT BEING PRESSED");
+  }
+
   // If pressed check for new place and track pressed
-  // pressed means we've read more pressed signals than our threshold
-  Serial.print("Curr reading sum: ");
-  Serial.println(curr_reading_sum);
-  Serial.print("Threshold: ");
-  Serial.println(PRESSED_THRESHOLD);
-  if (curr_reading_sum >= PRESSED_THRESHOLD) {
+  if (now - last_high < LOW_REQUIRED_MS) {
     if (!pressed) {
-      last_placed = millis();
+      last_placed = now;
     }
     pressed = true;
   } else {
     pressed = false;
   }
-}
-
-void update_pressed_count() {
-    int switch_input = digitalRead(SWITCH_IN);
-    
-    // Update current position with reading, and update sum accordingly
-    if (sensor_readings[curr_reading_pos]) {
-      curr_reading_sum--; // remove the previously counted "pressed" reading
-    }
-    sensor_readings[curr_reading_pos] = switch_input == HIGH;
-    // Add newly "pressed" reading if needed
-    if (switch_input == HIGH) {
-      Serial.println("Pressure sensor down");
-      curr_reading_sum++;
-    }
-
-    // move to next spot in circular array
-    curr_reading_pos = (curr_reading_pos + 1) % SENSOR_INTERVALS;
 }
