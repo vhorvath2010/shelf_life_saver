@@ -38,7 +38,7 @@ void setup() {
 
   // Stop execution if no dynamic memory space for our sensor readings
   if (sensor_readings == NULL) {
-    Serial.println("Unable to allocate space for sensor readings");
+    Serial.println("Unable to allocate space for sensor readings, exiting");
     exit(1);
   }
 
@@ -49,8 +49,8 @@ void setup() {
   strip.begin();
   strip.show();
 
-  Serial.print("Threshold: ");
-  Serial.println(PRESSED_THRESHOLD);
+  // Serial.print("Threshold: ");
+  // Serial.println(PRESSED_THRESHOLD);
 
   last_placed = millis();
 }
@@ -60,15 +60,18 @@ void loop() {
   update_last_placed();
 
   // Light up if placed recently or too long ago
-  unsigned int curr = millis();
-  unsigned int time_since_placed = curr - last_placed;
+  unsigned long curr = millis();
+  unsigned long time_since_placed = curr - last_placed;
+  // Serial.print("Time since placed: ");
+  // Serial.print(time_since_placed);
+  // Serial.println();
   if (pressed) {
     if (time_since_placed < PLACED_IND_DUR) {
       strip.fill(PLACED_COLOR);
     } else if (time_since_placed > LED_DELAY) {
       strip.fill(TIMER_UP_COLOR);
     } else {
-      strip.fill(strip.Color(255,100,0));
+      strip.clear();
     }
   } else {
     strip.clear();
@@ -81,8 +84,8 @@ void update_last_placed() {
   
   // If pressed check for new place and track pressed
   // pressed means we've read more pressed signals than our threshold
-  Serial.print("Curr reading sum: ");
-  Serial.println(curr_reading_sum);
+  // Serial.print("Curr reading sum: ");
+  // Serial.println(curr_reading_sum);
   if (curr_reading_sum >= PRESSED_THRESHOLD) {
     if (!pressed) {
       last_placed = millis();
@@ -103,7 +106,7 @@ void update_pressed_count() {
     sensor_readings[curr_reading_pos] = switch_input == HIGH;
     // Add newly "pressed" reading if needed
     if (switch_input == HIGH) {
-      Serial.println("Pressure sensor down");
+      // Serial.println("Pressure sensor down");
       curr_reading_sum++;
     }
 
