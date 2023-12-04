@@ -1,7 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 
 // Delay in ms before turning light on
-const unsigned long LED_DELAY = 5000;
+const unsigned long LED_DELAY = 7000;
 
 // Place indicator length in ms
 const unsigned long PLACED_IND_DUR = 1000;
@@ -14,9 +14,10 @@ Adafruit_NeoPixel strip(NUM_LEDS, LED_OUT);
 // const values for strip colors
 const uint32_t TIMER_UP_COLOR = strip.Color(0, 0, 255);
 const uint32_t PLACED_COLOR = strip.Color(0, 255, 0);
+const uint32_t INTERM_COLOR = strip.Color(1, 1, 1);
 
 // Switch/Pressure sensor input
-const unsigned int SWITCH_IN = 7;
+const unsigned int PSR_PIN = A0;
 
 // Keep track of when an object was last placed (not pressed -> pressed)
 bool pressed = false;
@@ -43,7 +44,7 @@ void setup() {
   }
 
   // setup pins
-  pinMode(SWITCH_IN, INPUT);
+  // needed if digital: pinMode(LED_IN, INPUT);
 
   // init LEDs to off
   strip.begin();
@@ -97,19 +98,21 @@ void update_last_placed() {
 }
 
 void update_pressed_count() {
-    int switch_input = digitalRead(SWITCH_IN);
-    
-    // Update current position with reading, and update sum accordingly
-    if (sensor_readings[curr_reading_pos]) {
-      curr_reading_sum--; // remove the previously counted "pressed" reading
-    }
-    sensor_readings[curr_reading_pos] = switch_input == HIGH;
-    // Add newly "pressed" reading if needed
-    if (switch_input == HIGH) {
-      // Serial.println("Pressure sensor down");
-      curr_reading_sum++;
-    }
+  long psr_reading =  analogRead(PSR_PIN);
+  bool psr_input = psr_reading > 800;
+  Serial.println(psr_reading);
 
-    // move to next spot in circular array
-    curr_reading_pos = (curr_reading_pos + 1) % SENSOR_INTERVALS;
+  // Update current position with reading, and update sum accordingly
+  if (sensor_readings[curr_reading_pos]) {
+    curr_reading_sum--; // remove the previously counted "pressed" reading
+  }
+  sensor_readings[curr_reading_pos] = psr_input;
+  // Add newly "pressed" reading if needed
+  if (psr_input) {
+    Serial.println("Pressure sensor down");
+    curr_reading_sum++;
+  }
+
+  // move to next spot in circular array
+  curr_reading_pos = (curr_reading_pos + 1) % SENSOR_INTERVALS;
 }
